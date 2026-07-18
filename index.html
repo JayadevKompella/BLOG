@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notes</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            max-width: 650px;
+            margin: 40px auto;
+            padding: 0 20px;
+            line-height: 1.6;
+            color: #111;
+            background-color: #fcfbf9;
+        }
+        header {
+            margin-bottom: 30px;
+        }
+        header h1 {
+            font-size: 1.8rem;
+            margin-bottom: 5px;
+            letter-spacing: 1px;
+        }
+        header a {
+            color: #111;
+            text-decoration: none;
+        }
+        nav button {
+            background: none;
+            border: none;
+            padding: 0;
+            margin-right: 15px;
+            color: #0066cc;
+            text-decoration: none;
+            font-size: 1rem;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        nav button:hover {
+            text-decoration: underline;
+        }
+        .content-section {
+            display: none;
+        }
+        .content-section.active {
+            display: block;
+        }
+        ul.post-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        ul.post-list li {
+            margin-bottom: 12px;
+            display: flex;
+            align-items: baseline;
+            flex-wrap: wrap;
+        }
+        ul.post-list li span.date {
+            min-width: 110px;
+            font-style: italic;
+            color: #666;
+            font-size: 0.95rem;
+        }
+        ul.post-list li a.post-link {
+            color: #0066cc;
+            text-decoration: none;
+            font-size: 1.05rem;
+            margin-right: 8px;
+        }
+        ul.post-list li a.post-link:hover {
+            text-decoration: underline;
+        }
+        .flair {
+            background-color: #eaeaea;
+            color: #444;
+            font-size: 0.75rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 500;
+            text-transform: lowercase;
+        }
+        footer {
+            margin-top: 80px;
+            font-size: 0.85rem;
+            color: #666;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <a href="#" onclick="showSection('blogs')"><h1>NOTES</h1></a>
+        <nav>
+            <button onclick="showSection('blogs')">Blogs</button>
+            <button onclick="showSection('about')">About</button>
+        </nav>
+    </header>
+
+    <main>
+        <div id="blogs" class="content-section active">
+            <ul class="post-list" id="posts-container">
+                <li><span class="date">Loading...</span></li>
+            </ul>
+        </div>
+
+        <div id="about" class="content-section">
+            <h2>About</h2>
+            <p>Replace this text with the story of why you are writing these blogs.</p>
+        </div>
+    </main>
+
+    <footer>
+        <span>Powered by GitHub Notes ʕ•ᴥ•ʔ</span>
+    </footer>
+
+    <script>
+        const REPO_OWNER = 'YOUR_GITHUB_USERNAME';
+        const REPO_NAME = 'YOUR_REPO_NAME';
+
+        function showSection(sectionId) {
+            document.querySelectorAll('.content-section').forEach(el => el.classList.remove('active'));
+            document.getElementById(sectionId).classList.add('active');
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            const day = date.getDate().toString().padStart(2, '0');
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            return `${day} ${months[date.getMonth()]}, ${date.getFullYear()}`;
+        }
+
+        async function loadBlog() {
+            const postsContainer = document.getElementById('posts-container');
+            try {
+                const response = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues?state=open&sort=updated`);
+                if (!response.ok) throw new Error();
+                const json = await response.json();
+                const issues = json.filter(issue => !issue.pull_request);
+
+                if (issues.length === 0) {
+                    postsContainer.innerHTML = '<li><span class="date"></span>No posts found.</li>';
+                    return;
+                }
+
+                postsContainer.innerHTML = '';
+                issues.forEach(post => {
+                    const li = document.createElement('li');
+                    
+                    const dateSpan = document.createElement('span');
+                    dateSpan.className = 'date';
+                    dateSpan.textContent = formatDate(post.updated_at);
+                    
+                    const link = document.createElement('a');
+                    link.className = 'post-link';
+                    link.href = post.html_url;
+                    link.target = '_blank';
+                    link.textContent = post.title;
+                    
+                    li.appendChild(dateSpan);
+                    li.appendChild(link);
+
+                    if (post.labels && post.labels.length > 0) {
+                        const flairSpan = document.createElement('span');
+                        flairSpan.className = 'flair';
+                        flairSpan.textContent = post.labels[0].name;
+                        li.appendChild(flairSpan);
+                    }
+
+                    postsContainer.appendChild(li);
+                });
+            } catch (error) {
+                postsContainer.innerHTML = '<li><span class="date"></span>Error loading notes.</li>';
+            }
+        }
+
+        loadBlog();
+    </script>
+</body>
+</html>
